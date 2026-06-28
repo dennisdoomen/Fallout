@@ -122,3 +122,11 @@ Dates land on the timeline once `R0` ships.
 - [#37](https://github.com/ChrisonSimtian/Fallout/issues/37) — migration guide (P5)
 - [#47](https://github.com/ChrisonSimtian/Fallout/issues/47) — `Nuke.<X>` type-forwarding shim packages on GH Packages (P5)
 - [#48](https://github.com/ChrisonSimtian/Fallout/issues/48) — `Fallout.Migrate` CLI tool (P5, demand-driven)
+
+## Test naming migration sizing (2026-06-28)
+
+Scope estimate for renaming `Test`/`Tests` to `Spec`/`Specs`:
+
+- C# files affected by filename/class declaration renames: **84**
+- Test project files affected (`*.Tests.csproj` → `*.Specs.csproj`): **13**
+- Combined unique files in scope: **97**
