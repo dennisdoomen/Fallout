@@ -74,8 +74,10 @@ public class GitRepository
             .SkipWhile(x => x != $"[branch {branch.DoubleQuote()}]")
             .Skip(1)
             .TakeWhile(x => !x.StartsWith("["))
-            .Select(x => x.Split('='))
-            .ToDictionary(x => x.ElementAt(0).Trim(), x => x.ElementAt(1).Trim());
+            .Where(x => x.Contains('='))
+            .Select(x => x.Split('=', 2))
+            .GroupBy(x => x[0].Trim(), x => x[1].Trim())
+            .ToDictionary(x => x.Key, x => x.Last());
         return data.TryGetValue("remote", out var remote) && data.TryGetValue("merge", out var merge)
             ? (remote, merge.TrimStart("refs/heads/"))
             : (null, null);
