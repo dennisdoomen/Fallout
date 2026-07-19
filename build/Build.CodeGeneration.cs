@@ -22,12 +22,29 @@ partial class Build
         });
 
     Target GenerateTools => _ => _
+        .Executes(() => GenerateAllTools());
+
+    // CI gate: `GenerateTools` only runs when a contributor remembers to invoke it, so a .json
+    // spec edited without regenerating its .Generated.cs could merge silently and ship stale
+    // wrapper code. Regenerating from a known-clean checkout and asserting the working copy is
+    // still clean afterward catches that drift before merge.
+    Target VerifyGeneratedTools => _ => _
+        .Requires(() => GitHasCleanWorkingCopy())
         .Executes(() =>
         {
-            SpecificationsDirectory.GlobFiles("*/*.json").ForEach(x =>
-                GenerateCode(
-                    x,
-                    namespaceProvider: x => $"Fallout.Common.Tools.{x.Name}",
-                    sourceFileProvider: x => GitRepository.SetBranch(MainBranch).GetGitHubBrowseUrl(x.SpecificationFile)));
+            GenerateAllTools();
+
+            Assert.True(
+                GitHasCleanWorkingCopy(),
+                "Generated tool wrappers are out of sync with their .json specs. Run './build.ps1 GenerateTools' locally and commit the result.");
         });
+
+    void GenerateAllTools()
+    {
+        SpecificationsDirectory.GlobFiles("*/*.json").ForEach(x =>
+            GenerateCode(
+                x,
+                namespaceProvider: x => $"Fallout.Common.Tools.{x.Name}",
+                sourceFileProvider: x => GitRepository.SetBranch(MainBranch).GetGitHubBrowseUrl(x.SpecificationFile)));
+    }
 }

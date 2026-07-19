@@ -51,7 +51,7 @@ using Fallout.Components;
     // branch — all are long-lived and protected; all require the ubuntu-latest check.
     OnPullRequestBranches = new[] { ExperimentalBranch, MainBranch, ReleaseBranchPattern, SupportBranchPattern },
     OnPullRequestExcludePaths = new[] { "docs/**", ".assets/**", "**/*.md" },
-    InvokedTargets = new[] { nameof(ITest.Test), nameof(IPack.Pack) },
+    InvokedTargets = new[] { nameof(VerifyGeneratedTools), nameof(ITest.Test), nameof(IPack.Pack) },
     PublishArtifacts = false)]
 partial class Build
 {
