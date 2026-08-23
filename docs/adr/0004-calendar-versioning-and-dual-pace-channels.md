@@ -171,5 +171,5 @@ Make daily builds literally `2026.05.29`.
 - [ADR-0001: Release-branch model & multi-channel CD](0001-release-branch-model.md) — parent; versioning section superseded here, channel model extended.
 - [ADR-0002: v11 off nuget.org by default](0002-v11-off-nuget-by-default.md) — nuget.org-opt-in policy, retained.
 - [docs/branching-and-release.md](../branching-and-release.md) — maintainer runbook (updated for this model).
-- [docs/agents/release-and-versioning.md](../agents/release-and-versioning.md) — agent-facing branching/versioning/PR-flow reference (updated for this model).
+- [`.agents/skills/creating-a-pr/SKILL.md`](../../.agents/skills/creating-a-pr/SKILL.md) — the PR flow this model implies, as an agent skill (updated for this model).
 - Discussion thread: [#302 — Calendar versioning + dual-pace channels (feedback)](https://github.com/ChrisonSimtian/Fallout/discussions/302).

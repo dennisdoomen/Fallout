@@ -1,78 +1,116 @@
 # AGENTS.md
 
-Guidance for AI coding tools (Claude Code, GitHub Copilot, Cursor, Aider, Codex, etc.) working in this repo.
+The canonical brief for AI coding tools and human contributors. `CLAUDE.md` points here.
 
-This is the **canonical brief**. Tool-specific instruction files (`CLAUDE.md`, `.github/copilot-instructions.md`) point here.
+This file is loaded into **every** session, so it holds only what applies to every task. Task-specific
+procedures live in `.agents/skills/`; long-form reference lives in `docs/`. Keep it short.
 
 ## What this project is
 
-**Fallout** — a build automation system for C#/.NET, hard-fork successor to [NUKE](https://github.com/nuke-build/nuke). The build is itself a C# console app (`build/_build.csproj`), so any change to the framework can be dogfooded by running `./build.ps1` (Windows) or `./build.sh`.
+**Fallout** — a build automation system for C#/.NET, the hard-fork successor to
+[NUKE](https://github.com/nuke-build/nuke), under new maintenance since 2026. The build is itself a C#
+console app (`build/_build.csproj`), so any framework change can be dogfooded with `./build.ps1`.
 
-Originally NUKE by [matkoch](https://github.com/matkoch); under new maintenance as of 2026 and being renamed to Fallout. The codebase is mature, large, and has long-standing conventions — prefer matching existing patterns over introducing new ones.
-
-**Rebrand status:** the structural rename has landed — namespaces (`Fallout.*`), package IDs, project filenames, and the global tool name (`dotnet fallout`) are all in place. Legacy `Nuke.*` lives on only as the consumer transition shims under `src/Shims/`. See [docs/rebrand-plan.md](docs/rebrand-plan.md) for the locked namespace mapping.
-
-**Versioning & channels (calendar versioning, three-tier ladder — [ADR-0004](docs/adr/0004-calendar-versioning-and-dual-pace-channels.md), amended 2026-05-30).** The project ships on **calendar versions `YYYY.MINOR.PATCH`** (mechanically valid semver; major = year). A maturity ladder feeds the production line — **GitHub Packages = test/preview channels; nuget.org = production**:
-- **`experimental` = the fast/AI lane** — intentionally unstable, per-commit `-alpha` prereleases (`2026.1.0-alpha.<height>.g<commit>`) to **GitHub Packages only**. **Breaking changes land here only**, batched for the yearly major. Light/fast review.
-- **`main` = the integration trunk + `-preview` channel** — default branch; deliberate improvements + bug fixes land here, non-breaking work is promoted up from `experimental`. Per-commit `-preview` prereleases to **GitHub Packages only — never nuget.org**. Ordinary review. (`experimental` and `main` share the same version core.)
-- **`release/YYYY` = the production line** — cut from `main`; hardened deliberately, `-rc.N` → GA, non-breaking minors/patches only after the cut, rigorous review. Tags publish to nuget.org (opt-in) + GitHub Packages + GitHub Releases.
-- **Breaking changes are batched to the yearly major cut** — they accumulate on `experimental` and ship as next year's `YYYY+1.0.0`. Mid-year `main`/production is strictly non-breaking. Version ladder: `-alpha` < `-preview` < `-rc` < GA.
-- **Legacy `support/v10`** (renamed from `release/v10`; + `hotfix/v10.x`) stays on semver `10.x`, security/critical fixes only; retired year lines become **`support/YYYY`**. **`release/v11` is retired** (nothing clean shipped; its work re-homed onto the 2026 line).
-- Opt-in unstable public APIs are marked `[Experimental("FALLOUT0xx")]` and can ride any channel; promoting to stable = removing the attribute.
-
-**Active work** — rebrand completion + plugin-architecture internal foundation ([milestone #6](https://github.com/ChrisonSimtian/Fallout/milestone/6)), now shipping on the `2026` line. **No public plugin SDK yet** — that's a later major ([milestone #7](https://github.com/ChrisonSimtian/Fallout/milestone/7)). Internal middleware/listener interfaces stay `internal`; do not expose via `InternalsVisibleTo` to non-test assemblies. See [docs/roadmap.md](docs/roadmap.md) and the five open RFCs ([#97](https://github.com/ChrisonSimtian/Fallout/issues/97)–[#101](https://github.com/ChrisonSimtian/Fallout/issues/101)).
+The codebase is mature and large — **prefer matching existing patterns over introducing new ones**.
+The rename has landed; legacy `Nuke.*` survives only as transition shims under `src/Shims/`.
 
 ## Stack
 
-- .NET SDK pinned in `global.json` (currently `10.0.100`, `rollForward: latestMinor`).
-- Central package versions in `Directory.Packages.props` — never add a `Version=` to an individual `PackageReference`.
-- xUnit + FluentAssertions + Verify.Xunit for tests.
-- Solution file is `fallout.slnx` (new XML solution format, not `.sln`).
-
-## Common commands
+.NET SDK pinned in `global.json` · central package versions in `Directory.Packages.props` ·
+xUnit + FluentAssertions + Verify.Xunit · solution file is `fallout.slnx` (XML format, not `.sln`).
 
 ```powershell
-./build.ps1                          # default target = Pack
-./build.ps1 Compile
-./build.ps1 Test
-./build.ps1 GenerateTools            # regenerate tool wrappers from JSON
-./build.ps1 --help                   # list all targets and parameters
-
-# Or via dotnet directly when iterating on a single project
-dotnet build fallout.slnx
-dotnet test tests/Fallout.Common.Tests/Fallout.Common.Tests.csproj
+./build.ps1                  # default target = Pack
+./build.ps1 Compile | Test
+./build.ps1 GenerateTools    # regenerate tool wrappers from JSON
+./build.ps1 --help           # all targets and parameters
+dotnet test tests/Fallout.Common.Tests/Fallout.Common.Tests.csproj   # single project
 ```
 
-Do not commit code generated by `GenerateTools` — generated code is regenerated manually once per release.
+## Versioning and channels
 
-## Critical rules (read this every session)
+Calendar versioning `YYYY.MINOR.PATCH` (valid semver; major = year). A maturity ladder feeds the
+production line: **GitHub Packages = test/preview, nuget.org = production.**
 
-1. **At PR-creation time, follow the [PR-creation flow](docs/agents/release-and-versioning.md#pr-creation-flow) in `docs/agents/release-and-versioning.md`.** Every PR gets a `target/YYYY` label (`target/2026`; legacy v10 work uses `target/v10`). Breaking changes additionally get a `breaking-change` label, a `⚠️ Breaking change` callout, and a `CHANGELOG.md` entry — recorded under the **next yearly major** (breaking changes are batched to the year cut, not shipped mid-year). A breaking-change PR may target **`experimental` only** — never `main` and never a `release/YYYY` production train. This is non-negotiable — review will block.
-2. **Default to backwards compatibility.** Prefer additive over breaking changes. Before changing a public signature, removing an API, renaming a package, or altering an on-disk format, ask: can this be additive instead? `[Obsolete]` markers, transition shims (see `src/Shims/` + `Fallout.SourceGenerators.TransitionShimGenerator`), the `[Experimental("FALLOUT0xx")]` opt-in escape hatch for not-yet-stable surface, feature flags, and overload-based extension are all preferred to a hard break. When a breaking change is genuinely unavoidable, it lands on `experimental`, is held for the next yearly major, and follows rule #1's flow — the break must be deliberate, named, and migration-pathed in the CHANGELOG. See [#262](https://github.com/ChrisonSimtian/Fallout/issues/262) for the broader discussion. The `[Experimental]` convention (diagnostic-ID scheme + registry) is documented in [docs/agents/conventions.md](docs/agents/conventions.md#experimental-for-opt-in-unstable-apis) and [docs/experimental-apis.md](docs/experimental-apis.md).
-3. **Central package versions only** — add to `Directory.Packages.props`, never `Version=` inline.
-4. **Tests next to code** — every `src/Foo` has a `tests/Foo.Tests` sibling. Mirror namespaces.
-5. **Stay on xUnit + FluentAssertions + Verify.** Don't introduce new test frameworks.
-6. **No `.editorconfig` or `*.DotSettings`** — they were removed during the takeover. Don't reintroduce without a maintainer-level decision.
-7. **No per-file license headers.** The MIT notice lives in [`LICENSE`](LICENSE) at the repo root — single source of truth. Don't reintroduce header preambles on new files.
+| Branch | Channel | Breaking changes | Review |
+|---|---|---|---|
+| `experimental` | `-alpha` per commit, GH Packages | **Only here** | Light, fast |
+| `main` (default) | `-preview` per commit, GH Packages | Never | Ordinary |
+| `release/YYYY` | `-rc.N` → GA, nuget.org opt-in | Never | Rigorous |
+| `support/v10` | legacy `10.x`, on tag | Never | Security/critical only |
 
-Full conventions + what-not-to-do list: [docs/agents/conventions.md](docs/agents/conventions.md).
+Ladder: `-alpha` < `-preview` < `-rc` < GA. Breaking changes accumulate on `experimental` and ship as
+next year's major — mid-year `main` and production are strictly non-breaking. Unstable public API can
+ship marked `[Experimental("FALLOUT0xx")]` on any channel.
 
-## Where to look next
+## Critical rules
 
-- **[docs/agents/repository-layout.md](docs/agents/repository-layout.md)** — full directory structure, project groupings, transition-shim strategy
-- **[docs/agents/release-and-versioning.md](docs/agents/release-and-versioning.md)** — branching, semver policy, PR-creation flow, release pipeline, NuGet gotchas
-- **[docs/branching-and-release.md](docs/branching-and-release.md)** — maintainer runbook for cutting releases, hotfixing older majors, cutting new `release/vN` branches
-- **[docs/adr/](docs/adr/)** — Architecture Decision Records (read `0004-calendar-versioning-and-dual-pace-channels.md` and `0001-release-branch-model.md` for the release model)
-- **[docs/agents/conventions.md](docs/agents/conventions.md)** — conventions, what-not-to-do list, tool-wrapper recipe
-- **[docs/architecture.md](docs/architecture.md)** — high-level architecture overview
-- **[docs/rebrand-plan.md](docs/rebrand-plan.md)** — namespace mapping + bridge strategy
-- **[docs/roadmap.md](docs/roadmap.md)** — v11/v12/v13 milestones and RFCs
-- **[docs/dependencies.md](docs/dependencies.md)** — third-party dependencies (update when adding meaningful libraries)
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** — contributor-facing flow (branching, PR review, merging convention)
+1. **Every PR gets a target label at creation time** (`target/vCurrent`, or `target/vNext` for a
+   breaking change — check `gh label list` first, some repos still use the older `target/YYYY`).
+   A breaking change also needs the `breaking-change` label, a `⚠️ Breaking change` callout, an
+   `experimental` base branch, and a CHANGELOG entry under the next major. Review blocks
+   otherwise — read the `creating-a-pr` skill.
+2. **Default to backwards compatibility.** `[Obsolete]`, shims, `[Experimental]`, feature flags and
+   overloads all beat a hard break ([#262](https://github.com/ChrisonSimtian/Fallout/issues/262)).
+3. **Central package versions only** — `Directory.Packages.props`, never `Version=` inline. A
+   meaningful new library also gets a row in [docs/dependencies.md](docs/dependencies.md).
+4. **Tests next to code** — every `src/Foo` has a `tests/Foo.Tests` sibling. Mirror the namespace.
+5. **Stay on xUnit + FluentAssertions + Verify.** No new test or assertion framework.
+6. **No `.editorconfig` or `*.DotSettings`** — intentionally removed. Don't reintroduce without a
+   maintainer-level decision.
+7. **No per-file license headers** — [`LICENSE`](LICENSE) at the root is the single source of truth.
+   Vendored third-party code keeps its own headers; leave those alone.
+8. **Never hand-edit generated files.** Tool wrappers, shims, per-target code and the cross-platform
+   CI workflows are generated. Fix the source, then regenerate.
+
+## Where things live
+
+`src/` production · `tests/` tests · `build/` the orchestrator · `docs/` reference + ADRs ·
+`.agents/skills/` agent skills · `.assets/` binaries.
+
+**[docs/architecture.md](docs/architecture.md) is the canonical layout reference** — the full tree,
+project groupings, the shim strategy, build conventions and the reasoning. Written for contributors and
+agents alike. Read it before moving files or adding a project, and update it in the same PR if the
+layout changes.
+
+## Doing a specific task? Read the skill
+
+Skills live in `.agents/skills/<name>/SKILL.md`. Copilot CLI discovers them automatically; other tools
+should open the file.
+
+- [`creating-a-pr`](.agents/skills/creating-a-pr/SKILL.md) — opening a PR, commit messages, base branch, the breaking-change gate
+- [`adding-a-tool-wrapper`](.agents/skills/adding-a-tool-wrapper/SKILL.md) — the `Tools/<Tool>/<Tool>.json` recipe
+- [`marking-experimental-apis`](.agents/skills/marking-experimental-apis/SKILL.md) — shipping API that isn't stable yet
+- [`editing-ci-workflows`](.agents/skills/editing-ci-workflows/SKILL.md) — `.github/workflows/` and CI config
+- [`cutting-a-release`](.agents/skills/cutting-a-release/SKILL.md) — tagging, publishing, promoting, the yearly cut
+
+## What not to do
+
+- Don't reintroduce `source/` (now `src/` + `tests/`) or `images/` (now `.assets/`).
+- Don't use conventional-commit prefixes (`feat:`, `fix:`, `docs:`) in commit subjects or PR titles.
+  Write a functional title saying what the change does — see the `creating-a-pr` skill.
+- Don't commit `output/`, `bin/`, `obj/`, `nuke-global.*`, or anything from `GenerateTools`.
+- Don't bypass `Directory.Packages.props` or `Directory.Build.targets`.
+- Don't disable the telemetry opt-out in test runs (`FALLOUT_TELEMETRY_OPTOUT=true`).
+- Don't expose internal middleware/listener interfaces via `InternalsVisibleTo` to non-test assemblies.
+  There is **no public plugin SDK yet** — that is a later major.
 
 ## Useful pointers
 
-- The `build/Build.*.cs` files are the canonical example of how to consume the framework — read these when reasoning about user-facing APIs.
-- `src/Fallout.Common/Tools/<Tool>/<Tool>.json` files are the source of truth for tool wrappers; the `.cs` next to them is generated.
-- Source generators (`src/Fallout.SourceGenerators`) produce per-target code at compile time — if a symbol seems missing, check whether it's generated.
-- The Verify snapshots (`*.verified.txt`, `*.verified.cs`) under `tests/` are the contract for generator output; review carefully when they change.
+- `build/Build.*.cs` is the canonical example of consuming the framework.
+- If a symbol seems missing, check whether `src/Fallout.SourceGenerators` generates it.
+- Verify snapshots (`*.verified.*`) under `tests/` are the contract for generator output — review
+  changes to them carefully.
+
+## Documentation map
+
+One topic, one home. If something appears in two layers, delete the copy — don't sync it.
+
+- **Rules** → `AGENTS.md`. Applies to every task, always loaded, stays short.
+- **Procedures** → `.agents/skills/`. Recipes, loaded only when the task matches.
+- **Reference** → `docs/`. Architecture, [release runbook](docs/branching-and-release.md),
+  [dependencies](docs/dependencies.md), [experimental APIs](docs/experimental-apis.md),
+  [roadmap](docs/roadmap.md), [rebrand plan](docs/rebrand-plan.md). For contributors *and* agents —
+  link to these rather than copying them.
+- **Decisions** → [`docs/adr/`](docs/adr/). Why a model was chosen. Immutable once accepted.
+- **Contributors** → `CONTRIBUTING.md`. Human-facing entry point; links here rather than restating.
