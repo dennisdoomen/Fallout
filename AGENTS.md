@@ -45,9 +45,11 @@ ship marked `[Experimental("FALLOUT0xx")]` on any channel.
 
 ## Critical rules
 
-1. **Every PR gets a `target/YYYY` label at creation time.** A breaking change also needs the
-   `breaking-change` label, a `⚠️ Breaking change` callout, an `experimental` base branch, and a
-   CHANGELOG entry under the next major. Review blocks otherwise — read the `creating-a-pr` skill.
+1. **Every PR gets a target label at creation time** (`target/vCurrent`, or `target/vNext` for a
+   breaking change — check `gh label list` first, some repos still use the older `target/YYYY`).
+   A breaking change also needs the `breaking-change` label, a `⚠️ Breaking change` callout, an
+   `experimental` base branch, and a CHANGELOG entry under the next major. Review blocks
+   otherwise — read the `creating-a-pr` skill.
 2. **Default to backwards compatibility.** `[Obsolete]`, shims, `[Experimental]`, feature flags and
    overloads all beat a hard break ([#262](https://github.com/ChrisonSimtian/Fallout/issues/262)).
 3. **Central package versions only** — `Directory.Packages.props`, never `Version=` inline. A

@@ -38,22 +38,33 @@ it can be additive instead — see the "prefer additive" rule in `AGENTS.md`.
 
 ## 3. Label and open
 
-Every PR gets a `target/YYYY` label naming the calendar year it releases in:
+Every PR gets a **target label** saying which release line it ships on. Read the labels that actually
+exist before you pick one — the repo is mid-transition between two schemes:
 
 ```bash
-gh pr create --base main --label target/2026 --title "…" --body "…"
+gh label list --limit 200 | grep target/
 ```
 
-- Default is `target/<current-year>`.
-- A breaking change is held for the next yearly major, so it takes `target/<next-year>`.
-- Legacy 10.x maintenance work takes `target/v10`.
+- **`target/vCurrent` / `target/vNext` / `target/backlog`** — the current relative scheme. Prefer these
+  when they exist.
+- **`target/YYYY`** (e.g. `target/2026`) — the older absolute scheme, still present on merged PRs.
+- **`target/v10`** — legacy 10.x maintenance.
+
+Then:
+
+```bash
+gh pr create --base main --label target/vCurrent --title "…" --body "…"
+```
+
+Default is the current line. A breaking change is held for the next yearly major, so it takes
+`target/vNext` (or `target/<next-year>` under the old scheme).
 
 ## 4. Extra steps for a breaking change
 
 All four, in the same PR:
 
 1. Add the **`breaking-change`** label:
-   `gh pr create --base experimental --label target/2027 --label breaking-change …`
+   `gh pr create --base experimental --label target/vNext --label breaking-change …`
 2. **Open the PR body with a `⚠️ Breaking change` callout** naming the affected surface (public API,
    package ID, CLI flag, on-disk format, CI/CD shape) and the consumer-side impact in one sentence.
    This is the first thing reviewers and downstream consumers read.

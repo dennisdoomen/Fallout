@@ -62,7 +62,7 @@ The definition of "breaking", the labels, and the reviewer's responsibility to b
 
 ### Milestones and version targeting
 
-Milestones are **theme-based** (e.g. "Plugin Architecture Foundation & Rebrand Completion", "Public Plugin SDK") and carry across releases. Version targeting uses **`target/YYYY`** labels — `target/2026`, `target/2027`, … Legacy v10 maintenance work uses `target/v10`. Because a breaking change is held for the next yearly major, its PR carries `target/<next-year>`.
+Milestones are **theme-based** (e.g. "Plugin Architecture Foundation & Rebrand Completion", "Public Plugin SDK") and carry across releases. Version targeting uses **target labels**: `target/vCurrent` for the line in flight, `target/vNext` for work held for the next yearly major, `target/backlog` for uncommitted long-tail work. Older PRs carry the previous absolute scheme (`target/2026`, `target/2027`, …); `target/v10` marks legacy v10 maintenance. Because a breaking change is held for the next yearly major, its PR carries `target/vNext`.
 
 ## Channel taxonomy
 
