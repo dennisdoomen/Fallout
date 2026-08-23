@@ -87,6 +87,8 @@ should open the file.
 ## What not to do
 
 - Don't reintroduce `source/` (now `src/` + `tests/`) or `images/` (now `.assets/`).
+- Don't use conventional-commit prefixes (`feat:`, `fix:`, `docs:`) in commit subjects or PR titles.
+  Write a functional title saying what the change does — see the `creating-a-pr` skill.
 - Don't commit `output/`, `bin/`, `obj/`, `nuke-global.*`, or anything from `GenerateTools`.
 - Don't bypass `Directory.Packages.props` or `Directory.Build.targets`.
 - Don't disable the telemetry opt-out in test runs (`FALLOUT_TELEMETRY_OPTOUT=true`).

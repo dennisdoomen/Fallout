@@ -25,12 +25,9 @@ train. Name your branch `feature/<slug>`, `bugfix/<slug>`, `chore/<slug>`, or `d
 
 ## 2. Is it breaking?
 
-A change is breaking if any of these hold:
-
-- A conventional-commit subject carries the `!` suffix (`feat(globaltool)!: …`).
-- The commit body has a `BREAKING CHANGE:` footer.
-- A reviewer would reasonably call it breaking even without a marker — renamed or removed public API,
-  package ID change, on-disk format change, or a CI/CD shape consumers depend on.
+A change is breaking if a reviewer would reasonably call it breaking: renamed or removed public API,
+a package ID change, an on-disk format change, or a change to a CI/CD shape consumers depend on.
+There is no marker syntax to look for — judge the change itself, and say so explicitly in the PR body.
 
 **Exception:** changes to surface marked `[Experimental("FALLOUT0xx")]` are never breaking. Adding or
 removing the attribute is not breaking either. If you are about to break something, first ask whether
@@ -84,9 +81,29 @@ If you only discover the breaking nature mid-review, apply all four before reque
 - Don't commit anything produced by `./build.ps1 GenerateTools`.
 - Add tests. Every `src/Foo` has a sibling `tests/Foo.Tests`; mirror the namespace.
 
-## 6. Writing style
+## 6. Titles and writing style
 
-Applies to commit messages, PR titles and bodies, review comments and issues. Many readers are
+**No conventional commits.** Don't prefix titles or commit subjects with `feat:`, `fix:`, `docs:`,
+`chore:` or a scope in parentheses. No `!` suffix, no `BREAKING CHANGE:` footer. The repo doesn't
+generate anything from commit subjects, so the prefix is noise that costs you the first few words of
+the title.
+
+**Write functional titles** — say what the change does for the reader, in plain language:
+
+| Instead of | Write |
+|---|---|
+| `docs: consolidate agent documentation into AGENTS.md + skills` | Move task-specific agent guidance into on-demand skills |
+| `feat(globaltool): add --no-logo flag` | Let the global tool suppress the startup banner |
+| `fix: npe in TargetResolver` | Stop TargetResolver crashing on an unresolved dependency |
+
+- Describe the outcome, not the file you touched.
+- Start with a verb where it reads naturally.
+- One line, no trailing full stop. Aim for something a reader scanning the log understands without
+  opening the PR.
+
+The same applies to commit subjects. Bodies explain *why*, in prose.
+
+**Style**, for commit messages, PR titles and bodies, review comments and issues. Many readers are
 non-native English speakers.
 
 - Be short and precise. Lead with the point.
