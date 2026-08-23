@@ -7,7 +7,7 @@
     in NOTICE and the file-level Microsoft headers preserved verbatim.
 
     Most types are `internal` — only the small whitelist referenced in the
-    public facade signatures of Fallout.Solution stays `public`. See
+    public facade signatures of Fallout.Solution stays `public`.  See
     docs/agents/repository-layout.md for the persistence-ring layering.
   -->
   <PropertyGroup>
