@@ -116,7 +116,7 @@ Treat the noise as a v13 problem; ship v11 under the existing model.
 - [Milestone #13](https://github.com/ChrisonSimtian/Fallout/milestone/13) — work-breakdown.
 - [RFC #267](https://github.com/ChrisonSimtian/Fallout/issues/267) — design discussion.
 - [docs/branching-and-release.md](../branching-and-release.md) — maintainer runbook for the model.
-- [docs/agents/release-and-versioning.md](../agents/release-and-versioning.md) — PR-flow + release-pipeline reference.
+- [`.agents/skills/creating-a-pr/SKILL.md`](../../.agents/skills/creating-a-pr/SKILL.md) — PR-flow reference for agents and contributors.
 - Related: [#262](https://github.com/ChrisonSimtian/Fallout/issues/262) (backwards-compat principle), [#263](https://github.com/ChrisonSimtian/Fallout/issues/263) (CHANGELOG vs GH Releases), [#279](https://github.com/ChrisonSimtian/Fallout/issues/279) (Tier 3 Docker).
 
 ## Memory artifacts (AI agent context)

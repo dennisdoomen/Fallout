@@ -2,7 +2,7 @@
 
 Maintainer reference for how Fallout branches, ships releases, hotfixes older lines, and uses GitHub Environments to gate publishes. Model defined by [ADR-0004](adr/0004-calendar-versioning-and-dual-pace-channels.md) (calendar versioning + dual-pace channels), amending [ADR-0001](adr/0001-release-branch-model.md) / [milestone #13](https://github.com/ChrisonSimtian/Fallout/milestone/13) / [RFC #267](https://github.com/ChrisonSimtian/Fallout/issues/267).
 
-> **Audience.** Repository maintainers cutting releases or hotfixing older lines. Contributors filing PRs against `main` don't need to read this — see [CONTRIBUTING.md](https://github.com/Fallout-build/Fallout/blob/main/CONTRIBUTING.md) instead. AI coding tools should read both this file and [docs/agents/release-and-versioning.md](agents/release-and-versioning.md).
+> **Audience.** Repository maintainers cutting releases or hotfixing older lines, and AI tools reasoning about where a change belongs. Contributors filing a PR don't need to read this — see [CONTRIBUTING.md](https://github.com/Fallout-build/Fallout/blob/main/CONTRIBUTING.md), or the [`creating-a-pr` skill](../.agents/skills/creating-a-pr/SKILL.md) for the PR-creation procedure.
 
 ## Branches at a glance
 
@@ -21,6 +21,48 @@ A three-tier maturity ladder feeding the production line (amended [ADR-0004](adr
 This *is* gitflow with the project's vocabulary: `experimental` ≈ `develop`, `main` ≈ the stable trunk, `release/YYYY` ≈ `release/*` (long-lived per year), `support/*` ≈ legacy/retired lines. The one deviation: **`main` is not the production/nuget.org line** — `release/YYYY` + `support/*` are. `main` is a `-preview` test channel that production is cut from.
 
 `develop` (literal) and `master` are not used. **Breaking changes land on `experimental` only** and are batched to the yearly major cut. Non-breaking work is promoted **forward-only** `experimental → main → release/YYYY`. A stable-urgent fix lands on `main` (or the production branch) and is **forward-ported to `experimental`** so the fast lane never regresses — see the [promotion + hotfix flow](#promotion-and-hotfixing) below.
+
+CI providers in use: **GitHub Actions only** (the others were dropped — see [#8](https://github.com/ChrisonSimtian/Fallout/issues/8) for the demand-driven revival roadmap).
+
+### Branch protection
+
+`experimental`, `main`, every `release/YYYY` and every `support/*` branch share `main`'s protection profile:
+
+- Required status check: `ubuntu-latest`
+- Linear history required (no merge commits)
+- CODEOWNER review required
+- Dismiss stale approvals when new commits land
+- Direct pushes blocked (PRs only)
+- Force-push and branch deletion blocked
+- Conversation resolution required
+- Admins not enforced (admins can bypass in emergencies)
+
+Apply to a new branch by mirroring `main`'s protection JSON via the GitHub API, or via repo Settings → Branches.
+
+## Versioning
+
+**Calendar versioning: `YYYY.MINOR.PATCH`** (see [ADR-0004](adr/0004-calendar-versioning-and-dual-pace-channels.md)). It is mechanically valid SemVer 2.0 — all three components are numeric — so [Nerdbank.GitVersioning](https://github.com/dotnet/Nerdbank.GitVersioning), NuGet and version ordering all work unchanged. The major *is* the calendar year.
+
+- **`MAJOR` = year**, hand-set in `version.json` at the yearly cut. **`MINOR`** = feature drop within the year. **`PATCH`** = git-height fixes.
+- Configured per-branch via `version.json`. The test lanes are **non-public refs** carrying the next planned version with a prerelease tag: `experimental` → `"2026.1.0-alpha.{height}"`, `main` → `"2026.1.0-preview.{height}"` (same core; `firstUnstableTag` is `alpha` / `preview` respectively). Each `release/YYYY` carries `"version": "YYYY.x"`; `support/v10` keeps `"version": "10.x"`; `support/YYYY` keeps `"version": "YYYY.x"`.
+- `publicReleaseRefSpec` matches the three production patterns — `^refs/heads/release/\d{4}$`, `^refs/heads/support/\d{4}$`, `^refs/heads/support/v\d+$` — and deliberately **not** `main` / `experimental`.
+- Test-lane builds carry the height and commit in the **prerelease segment** (`2026.1.0-alpha.<height>.g<commit>`), never in the version core — a core like `2026.05.29` would parse as a *stable* release, not a nightly. Both lanes are non-public refs, so NB.GV appends the `.g<commit>` suffix.
+
+GitVersion is still installed as a transitional helper for `MajorMinorPatchVersion` in `Build.cs`; full removal is a follow-up.
+
+### Versioning policy
+
+**Breaking changes are batched to the yearly major cut.**
+
+- A breaking change may land on **`experimental` only**. It does *not* bump `version.json`'s major mid-year; it is held for the next yearly major and recorded in `CHANGELOG.md` under the next-major `[Unreleased]` heading with a migration path.
+- **Neither `main` nor a `release/YYYY` production line takes a breaking change mid-year** — both are strictly non-breaking (minor = features, patch = fixes).
+- Surface that isn't ready to commit to can ship behind `[Experimental("FALLOUT0xx")]` instead of being held back. Adding or removing that attribute is not a breaking change. See the [`marking-experimental-apis` skill](../.agents/skills/marking-experimental-apis/SKILL.md).
+
+The definition of "breaking", the labels, and the reviewer's responsibility to block a mis-targeted PR are in the [`creating-a-pr` skill](../.agents/skills/creating-a-pr/SKILL.md).
+
+### Milestones and version targeting
+
+Milestones are **theme-based** (e.g. "Plugin Architecture Foundation & Rebrand Completion", "Public Plugin SDK") and carry across releases. Version targeting uses **`target/YYYY`** labels — `target/2026`, `target/2027`, … Legacy v10 maintenance work uses `target/v10`. Because a breaking change is held for the next yearly major, its PR carries `target/<next-year>`.
 
 ## Channel taxonomy
 
@@ -169,10 +211,9 @@ git pull --ff-only
 git switch -c release/2027 main
 git push -u origin release/2027
 
-# 3. Apply branch protection (mirror main's profile — see
-#    docs/agents/release-and-versioning.md → Branch protection on release/YYYY).
-#    NOTE: scripts/release-branch-protection.json does not exist yet; capture
-#    main's live protection JSON into it (or apply via repo Settings → Branches).
+# 3. Apply branch protection (mirror main's profile — see "Branch protection"
+#    above). NOTE: scripts/release-branch-protection.json does not exist yet;
+#    capture main's live protection JSON into it (or apply via Settings → Branches).
 gh api -X PUT repos/ChrisonSimtian/Fallout/branches/release/2027/protection \
     --input scripts/release-branch-protection.json
 
@@ -208,9 +249,39 @@ Branches are cheap. Deletion is destructive. Default to keeping.
 
 A repository ruleset blocks creation/deletion/update of tags matching `v*` for non-admins ([ruleset 17017817](https://github.com/ChrisonSimtian/Fallout/rules/17017817)). Bypass actors: repo admins (`RepositoryRole 5`). Combined with the `nuget-org` env approval gate, that's two layers of "who can fire a production release."
 
+## The nuget.org path
+
+### Why it stays opt-in
+
+**GitHub Packages is the default channel** — for the test lanes (alpha/preview) and for stable tag pushes alike. nuget.org is reserved for the deliberate publish of a stabilised `release/YYYY`, or a `support/v10` legacy security patch. Publishing there requires a `workflow_dispatch` run with `publish-to-nugetorg=true` — a conscious "this release is ready" switch. Tag pushes alone publish to GitHub Packages + GitHub Releases only.
+
+Three layers protect the path: the `v*` tag ruleset, the input flag, and the `nuget-org` environment's required-reviewer rule. `NUGET_API_KEY` is scoped to that environment (per [#273](https://github.com/ChrisonSimtian/Fallout/issues/273)) and only resolves inside the gated job. Prefix reservation is tracked in [#33](https://github.com/ChrisonSimtian/Fallout/issues/33).
+
+### `workflow_dispatch` inputs
+
+- `tag` (required) — the existing tag to (re-)release.
+- `publish-to-nugetorg` (boolean, default `false`) — opt into the nuget.org publish job for this run.
+
+### `Nuke.*` shims never go to nuget.org
+
+The `Nuke.*` transition-shim package IDs are owned by the original NUKE maintainer on nuget.org (see [#47](https://github.com/ChrisonSimtian/Fallout/issues/47)). They are permanently routed to GitHub Packages, regardless of the input flag.
+
+### Adding a new `Fallout.X` package — the first-publish 403
+
+nuget.org's `Fallout.*` prefix reservation is per-ID, not per-prefix-wildcard. CI's first `nuget push` for any never-published `Fallout.X` package ID returns `403 (does not have permission to access the specified package)` until someone manually web-uploads one nupkg to register the ID. Two traps when doing that upload:
+
+1. **Set the package owner to the org, not your personal account.** The nuget.org upload UI doesn't prompt you; ownership defaults to the uploading user's profile. Get it wrong and the package ID is reserved but the org's `NUGET_API_KEY` still 403s on subsequent pushes, because the key is scoped to org-owned packages. Fix via *Manage Package → Owners → Add owner → \<org\>*, then optionally remove your personal account — or upload with the org service account's credentials in the first place. See [#208](https://github.com/ChrisonSimtian/Fallout/issues/208) for what this looks like when it goes wrong.
+2. **Validation can lag the upload by 5–30 minutes.** The package page may say "approved" while the API-key permission hasn't propagated yet. Wait, then rerun the release pipeline (`gh run rerun <id> --failed`); `--skip-duplicate` makes the retry safe for already-published packages.
+
+### Channel philosophy
+
+Per [RFC #267](https://github.com/ChrisonSimtian/Fallout/issues/267): nuget.org = production-grade and slow; GitHub Packages = faster cadence (the test/preview channel — alpha, preview, and every tag's packages); GitHub Releases = bundled artifacts. A Tier 3 Docker-based local NuGet server for pre-merge testing shipped via [#279](https://github.com/ChrisonSimtian/Fallout/issues/279) — see `tests/integration/docker-compose.yml`.
+
 ## See also
 
-- [docs/agents/release-and-versioning.md](agents/release-and-versioning.md) — PR-creation flow, semver policy, release pipeline reference, branch protection settings.
+- [`.agents/skills/cutting-a-release/SKILL.md`](../.agents/skills/cutting-a-release/SKILL.md) — the decision tree and trap list for agents, routing back into this runbook.
+- [`.agents/skills/creating-a-pr/SKILL.md`](../.agents/skills/creating-a-pr/SKILL.md) — PR-creation flow, labels, the breaking-change gate.
+- [`.agents/skills/editing-ci-workflows/SKILL.md`](../.agents/skills/editing-ci-workflows/SKILL.md) — workflow trigger invariants and what is generated.
 - [docs/adr/0004-calendar-versioning-and-dual-pace-channels.md](adr/0004-calendar-versioning-and-dual-pace-channels.md) — the current versioning + channel decision.
 - [docs/adr/0001-release-branch-model.md](adr/0001-release-branch-model.md) — the release-branch + multi-channel CD model (versioning amended by 0004).
 - [milestone #13](https://github.com/ChrisonSimtian/Fallout/milestone/13) — full work-breakdown of how this shape was implemented.
