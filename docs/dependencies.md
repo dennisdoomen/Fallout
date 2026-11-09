@@ -91,7 +91,7 @@ Still on Matt's personal NuGet account; supply-chain SPOF, high-priority to repl
 | `xunit` (+ `runner.visualstudio`) | Test framework |
 | `Microsoft.NET.Test.Sdk` | Test host wiring |
 | `FluentAssertions` | Readable assertion DSL |
-| `Verify.Xunit` (+ `.DiffPlex`, `.SourceGenerators`) | Snapshot-based testing (the `*.verified.txt` / `*.received.txt` pattern) |
+| `Verify.Xunit` (+ `.SourceGenerators`) | Snapshot-based testing (the `*.verified.txt` / `*.received.txt` pattern) |
 | `coverlet.msbuild` | Code coverage |
 | `GitHubActionsTestLogger` | Format test output for GitHub Actions annotations |
 | `Basic.Reference.Assemblies.NetStandard20` | Reference assemblies for source-generator compile tests |
