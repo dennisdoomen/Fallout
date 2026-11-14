@@ -122,13 +122,10 @@ public class CITest
 
     private class CITheoryAttribute : TheoryAttribute
     {
-        private readonly Type _type;
-
         public CITheoryAttribute(Type type)
         {
-            _type = type;
+            if (!IsRunning(type))
+                Skip = $"Only applies to {type.Name}.";
         }
-
-        public override string Skip => !IsRunning(_type) ? $"Only applies to {_type.Name}." : null;
     }
 }

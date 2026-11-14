@@ -59,6 +59,6 @@ public class ArchitectureFitnessTests
                      "offending types: " + FailingTypes(result));
     }
 
-    private static string FailingTypes(TestResult result) =>
+    private static string FailingTypes(NetArchTest.Rules.TestResult result) =>
         result.FailingTypeNames is null ? "(none reported)" : string.Join(", ", result.FailingTypeNames);
 }
