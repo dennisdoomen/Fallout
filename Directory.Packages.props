@@ -118,6 +118,11 @@
     <PackageVersion Include="NuGet.Resolver" Version="7.9.0" />
   </ItemGroup>
 
+  <!-- Test projects only: coverlet.MTP needs a newer DependencyInjection than the pin that ships to consumers. -->
+  <ItemGroup Condition="$(MSBuildProjectName.EndsWith('Tests')) Or $(MSBuildProjectName.EndsWith('Specs'))">
+    <PackageVersion Update="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
+  </ItemGroup>
+
   <!-- Per-framework versions for Fallout.ProjectModel (net8.0 / net9.0) -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
     <PackageVersion Update="Microsoft.Build" Version="17.14.28" />

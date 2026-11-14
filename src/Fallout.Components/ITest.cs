@@ -43,17 +43,18 @@ public interface ITest : ICompile, IHasArtifacts
                 if (UseTestingPlatform)
                 {
                     RunTestingPlatform();
-                    return;
                 }
-
-                DotNetTest(_ => _
-                        .Apply(TestSettingsBase)
-                        .Apply(TestSettings)
-                        .CombineWith(TestProjects, (_, v) => _
-                            .Apply(TestProjectSettingsBase, v)
-                            .Apply(TestProjectSettings, v)),
-                    completeOnFailure: true,
-                    degreeOfParallelism: TestDegreeOfParallelism);
+                else
+                {
+                    DotNetTest(_ => _
+                            .Apply(TestSettingsBase)
+                            .Apply(TestSettings)
+                            .CombineWith(TestProjects, (_, v) => _
+                                .Apply(TestProjectSettingsBase, v)
+                                .Apply(TestProjectSettings, v)),
+                        completeOnFailure: true,
+                        degreeOfParallelism: TestDegreeOfParallelism);
+                }
             }
             finally
             {
@@ -62,34 +63,35 @@ public interface ITest : ICompile, IHasArtifacts
             }
         });
 
-    void RunTestingPlatform()
+    private bool CollectCoverage =>
+        InvokedTargets.Contains((this as IReportCoverage)?.ReportCoverage) || IsServerBuild;
+
+    private void RunTestingPlatform()
     {
-        var collectCoverage = InvokedTargets.Contains((this as IReportCoverage)?.ReportCoverage) || IsServerBuild;
-        var failed = new List<string>();
+        // coverlet.MTP writes timestamped files, so remove the ones from earlier runs.
+        TestResultDirectory.GlobFiles("coverage.cobertura.*.xml").DeleteFiles();
+
+        var failedProjects = new List<string>();
+        var noBuild = SucceededTargets.Contains(Compile) ? " --no-build" : string.Empty;
+        var coverage = CollectCoverage
+            ? " --coverlet --coverlet-output-format cobertura --coverlet-exclude-by-file **/*.Generated.cs"
+            : string.Empty;
 
         foreach (var project in TestProjects)
         {
-            var arguments =
-                $"test --project {project.Path} --configuration {Configuration} --results-directory {TestResultDirectory}" +
-                $" --report-trx --report-trx-filename {project.Name}.trx";
-
-            if (SucceededTargets.Contains(Compile))
-                arguments += " --no-build";
-
-            if (collectCoverage)
-                arguments += " --coverlet --coverlet-output-format cobertura";
-
             try
             {
-                DotNet(arguments);
+                DotNet($"test --project {project.Path} --configuration {Configuration}" +
+                       $" --results-directory {TestResultDirectory} --report-trx --report-trx-filename {project.Name}.trx" +
+                       $"{noBuild:nq}{coverage:nq}");
             }
-            catch
+            catch (ProcessException)
             {
-                failed.Add(project.Name);
+                failedProjects.Add(project.Name);
             }
         }
 
-        Assert.True(failed.Count == 0, $"Tests failed in: {string.Join(", ", failed)}");
+        Assert.True(failedProjects.Count == 0, $"Tests failed in: {string.Join(", ", failedProjects)}");
     }
 
     void ReportTestResults()
@@ -131,7 +133,7 @@ public interface ITest : ICompile, IHasArtifacts
         .SetNoBuild(SucceededTargets.Contains(Compile))
         .ResetVerbosity()
         .SetResultsDirectory(TestResultDirectory)
-        .When(InvokedTargets.Contains((this as IReportCoverage)?.ReportCoverage) || IsServerBuild, _ => _
+        .When(CollectCoverage, _ => _
             .EnableCollectCoverage()
             .SetCoverletOutputFormat(CoverletOutputFormat.cobertura)
             .SetExcludeByFile("*.Generated.cs")
@@ -151,7 +153,7 @@ public interface ITest : ICompile, IHasArtifacts
             // https://github.com/xunit/visualstudio.xunit/pull/108
             .AddRunSetting("RunConfiguration.NoAutoReporters", bool.TrueString))
         .AddLoggers($"trx;LogFileName={v.Name}.trx")
-        .When(InvokedTargets.Contains((this as IReportCoverage)?.ReportCoverage) || IsServerBuild, _ => _
+        .When(CollectCoverage, _ => _
             .SetCoverletOutput(TestResultDirectory / $"{v.Name}.xml"));
 
     Configure<DotNetTestSettings> TestSettings => _ => _;

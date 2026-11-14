@@ -137,7 +137,9 @@ public class CISpecs
         public CITheoryAttribute(Type type)
         {
             if (!IsRunning(type))
+            {
                 Skip = $"Only applies to {type.Name}.";
+            }
         }
     }
 }

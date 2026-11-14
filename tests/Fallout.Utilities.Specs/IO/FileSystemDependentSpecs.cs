@@ -23,7 +23,7 @@ public abstract class FileSystemDependentSpecs
     {
         TestOutputHelper = testOutputHelper;
 
-        TestName = TestContext.Current.TestMethod?.MethodName.NotNull();
+        TestName = TestContext.Current.TestMethod.NotNull().MethodName;
 
         ExecutionDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location).NotNull();
         RootDirectory = Constants.TryGetRootDirectoryFrom(EnvironmentInfo.WorkingDirectory);
