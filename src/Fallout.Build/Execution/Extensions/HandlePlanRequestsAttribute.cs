@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using Fallout.Common;
 using Fallout.Common.Execution;
 using Fallout.Common.IO;
 using Fallout.Common.Utilities;
@@ -36,12 +37,21 @@ internal class HandlePlanRequestsAttribute : BuildExtensionAttributeBase, IOnBui
 
         HtmlFile.WriteAllText(contents);
 
+        // IDE integrations pass --plan-no-open and show the file themselves
+        if (!ShouldOpenBrowser(ParameterService.Instance))
+            return;
+
         // Workaround for https://github.com/dotnet/corefx/issues/10361
         Process.Start(new ProcessStartInfo
                       {
                           FileName = HtmlFile,
                           UseShellExecute = true
                       });
+    }
+
+    internal static bool ShouldOpenBrowser(ParameterService parameters)
+    {
+        return !(bool) parameters.GetParameter(Constants.PlanNoOpenParameterName, typeof(bool), separator: null);
     }
 
     // ReSharper disable once CognitiveComplexity
